@@ -30,7 +30,7 @@
 # movw $0x000c, %bx #BL=properity,BH=页号
 # movw $0x0000, %dx #DH,DL=起始行,列
 # int $0x10				#invoke
-# popw %bps
+# popw %bp
 # ret
 
 # TODO: This is lab1.2
@@ -45,18 +45,20 @@ start:
 	movw %ax, %es
 	movw %ax, %ss
 	# TODO:关闭中断
-
+	cli
 
 	# 启动A20总线
-	inb $0x92, %al 
+	inb $0x92, %al #这条指令从I/O端口0x92读取一个字节的数据到寄存器%al中。inb指令用于从指定的I/O端口读取数据。
 	orb $0x02, %al
-	outb %al, $0x92
+	outb %al, $0x92 #这条指令将寄存器%al中的数据写入I/O端口0x92。outb指令用于向指定的I/O端口写入数据。
 
 	# 加载GDTR
 	data32 addr32 lgdt gdtDesc # loading gdtr, data32, addr32
 
 	# TODO：设置CR0的PE位（第0位）为1
-
+  movl %cr0, %eax
+  orl  $0x1, %eax
+  movl %eax, %cr0
 
 
 	# 长跳转切换至保护模式
@@ -74,10 +76,9 @@ start32:
 	
 	movl $0x8000, %eax # setting esp
 	movl %eax, %esp
+	jmp bootMain
 	# TODO:输出Hello World
-
-
-
+		
 loop32:
 	jmp loop32
 
@@ -95,16 +96,16 @@ gdt: # 8 bytes for each table entry, at least 1 entry
 	.byte 0,0,0,0
 
 	# TODO：code segment entry
-	.word
-	.byte 
+	.word 0xffff,0
+	.byte 0,0x9e,0xcf,0
 
 	# TODO：data segment entry
-	.word
-	.byte 
+	.word 0xffff,0
+	.byte 0,0x92,0xcf,0
 
 	# TODO：graphics segment entry
-	.word
-	.byte 
+	.word 0xffff,0x8000
+	.byte 0x0b,0x92,0xcf,0
 
 gdtDesc: 
 	.word (gdtDesc - gdt -1) 
